@@ -1,0 +1,300 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trashtrack_user/blocs/profile/get_profile/get_profile_bloc.dart';
+import 'package:trashtrack_user/blocs/profile/update_profile/update_profile_bloc.dart';
+import 'package:trashtrack_user/helpers/message_dialog_helper.dart';
+import 'package:trashtrack_user/models/option/option.dart';
+import 'package:trashtrack_user/models/profile/profile.dart';
+import 'package:trashtrack_user/pages/protected/home_page.dart';
+import 'package:trashtrack_user/validators/firstname_validator.dart';
+import 'package:trashtrack_user/validators/lastname_validator.dart';
+import 'package:trashtrack_user/widgets/custom_app_bar.dart';
+import 'package:trashtrack_user/widgets/custom_dropdown_button.dart';
+import 'package:trashtrack_user/widgets/custom_elevated_button.dart';
+import 'package:trashtrack_user/widgets/custom_text_field.dart';
+import 'package:trashtrack_user/models/route/route.dart' as rm;
+
+//for map page
+import 'package:trashtrack_user/pages/protected/profile/map_page.dart';
+
+class EditProfilePage extends StatefulWidget {
+  const EditProfilePage({
+    super.key,
+    required this.profile,
+    required this.routes,
+  });
+
+  final Profile profile;
+  final List<rm.Route> routes;
+
+  @override
+  State<EditProfilePage> createState() => _EditProfilePageState();
+}
+
+class _EditProfilePageState extends State<EditProfilePage> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _firstnameController = TextEditingController();
+  final TextEditingController _lastnameController = TextEditingController();
+  final List<Option> _routeList = [];
+  String _selectedBarangay = '';
+
+  void _generateRouteList() {
+    for (final route in widget.routes) {
+      _routeList.add(Option(
+        id: route.id,
+        label: route.name,
+      ));
+    }
+  }
+
+  void _getProfileDetails() {
+    BlocProvider.of<GetProfileBloc>(context).add(
+      GetProfileEvent(_selectedBarangay),
+    );
+  }
+
+  void _changeSelectedBarangay(String? value) {
+    setState(() {
+      _selectedBarangay = value!;
+    });
+  }
+
+  void _updateProfile() {
+    FormState? formState = _formKey.currentState;
+
+    if (formState != null) {
+      if (formState.validate()) {
+        BlocProvider.of<UpdateProfileBloc>(context).add(
+          UpdateProfileEvent(
+            widget.profile.copyWith(
+              firstname: _firstnameController.text.trim(),
+              lastname: _lastnameController.text.trim(),
+              barangay: _selectedBarangay,
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _firstnameController.dispose();
+    _lastnameController.dispose();
+
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    _firstnameController.text = widget.profile.firstname ?? '';
+    _lastnameController.text = widget.profile.lastname ?? '';
+    _selectedBarangay = widget.profile.barangay ?? '';
+    _generateRouteList();
+
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Profile'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            // Access the current profile to perform the check
+            final profileState = context.read<GetProfileBloc>().state;
+            if (profileState is GetProfileSuccessfulState) {
+              _handleBackButton(profileState.profile);
+            } else {
+              Navigator.pushReplacement(
+                context,
+                // ignore: avoid_types_as_parameter_names, non_constant_identifier_names
+                MaterialPageRoute(builder: (BuildContext) => const HomePage()),
+              );
+            }
+          },
+        ),
+        backgroundColor: Colors.green, // Customize as needed
+        elevation: 0, // Customize as needed
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: <Widget>[
+                CustomTextField(
+                  textController: _firstnameController,
+                  prefixIcon: Icons.person,
+                  labelText: 'Firstname',
+                  onPressed: () => _firstnameController.clear(),
+                  suffixIcon: Icons.clear,
+                  validator: firstnameValidator,
+                ),
+                const SizedBox(height: 15),
+                CustomTextField(
+                  textController: _lastnameController,
+                  prefixIcon: Icons.person,
+                  labelText: 'Lastname',
+                  onPressed: () => _lastnameController.clear(),
+                  suffixIcon: Icons.clear,
+                  validator: lastnameValidator,
+                ),
+                const SizedBox(height: 15),
+                CustomDropdownButton(
+                  value: _selectedBarangay,
+                  options: _routeList,
+                  onChanged: (value) => _changeSelectedBarangay(value),
+                ),
+                const SizedBox(height: 25),
+                buildMapButton(),
+                const SizedBox(height: 15),
+                buildUPBC(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  BlocConsumer buildUPBC() {
+    return BlocConsumer<UpdateProfileBloc, UpdateProfileState>(
+      listener: (context, state) {
+        if (state is UpdateProfileSuccessfulState) {
+          MessageDialogHelper.showSuccessDialog(
+            context,
+            'Updating Success',
+            state.message,
+          );
+
+          _getProfileDetails();
+        }
+
+        if (state is UpdateProfileErrorState) {
+          MessageDialogHelper.showErrorDialog(
+            context,
+            'Updating Error',
+            state.message,
+          );
+        }
+      },
+      builder: (context, state) {
+        if (state is UpdateProfileProcessingState) {
+          return const CircularProgressIndicator();
+        } else {
+          return buildUpdateButton();
+        }
+      },
+    );
+  }
+
+// Method to require the user to setup their profile first
+  bool _needsProfileSetup() {
+    String firstname = _firstnameController.text.trim();
+    String lastname = _lastnameController.text.trim();
+
+    // for checker if the value of user's name is firstname and lastname and
+    if (firstname.isEmpty ||
+        firstname.toLowerCase() == 'firstname' ||
+        lastname.isEmpty ||
+        lastname.toLowerCase() == 'lastname') {
+      return true;
+    }
+    return false;
+  }
+
+  void _showProfileSetupDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20), // Rounded corners
+          ),
+          title: const Row(
+            children: [
+              Icon(
+                Icons.person_add,
+                color: Colors.blueAccent,
+                size: 28,
+              ),
+              SizedBox(width: 10),
+              Text(
+                'Let\'s Set You Up First!',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Please input your First and Last name and select your Barangay to complete your profile setup.',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.black87,
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.green,
+                textStyle: const TextStyle(fontSize: 16),
+              ),
+              child: const Text('Setup Now'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                // Optionally, trigger navigation or other actions here
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+// Method to handle back button for firstname checker
+  void _handleBackButton(Profile profile) {
+    if (_needsProfileSetup()) {
+      _showProfileSetupDialog();
+    } else {
+      Navigator.pushReplacement(
+        context,
+        // ignore: avoid_types_as_parameter_names, non_constant_identifier_names
+        MaterialPageRoute(builder: (BuildContext) => const HomePage()),
+      );
+    }
+  }
+
+  // Method to navigate to the map page
+  void _navigateToMap() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) => const MapPage(
+                selectedBarangay: '',
+              )),
+    );
+  }
+
+  CustomElevatedButton buildMapButton() {
+    return CustomElevatedButton(
+      onPressed: _navigateToMap,
+      isExpanded: true,
+      labelText: 'View Collection Routes',
+      backgroundColor: Colors.orange,
+    );
+  }
+
+  CustomElevatedButton buildUpdateButton() {
+    return CustomElevatedButton(
+      onPressed: _updateProfile,
+      isExpanded: true,
+      labelText: 'Update',
+    );
+  }
+}

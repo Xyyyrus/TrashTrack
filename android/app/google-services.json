@@ -1,0 +1,134 @@
+{
+  "project_info": {
+    "project_number": "206696705800",
+    "project_id": "trashtrack-ac6eb",
+    "storage_bucket": "trashtrack-ac6eb.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:206696705800:android:2806e3a61290dba53446bd",
+        "android_client_info": {
+          "package_name": "com.TrashTrack.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "206696705800-hog9de7tns7q20su9pic1qv0r7cmu949.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.TrashTrack.app",
+            "certificate_hash": "e15965852a5eb37ba9fba910d6efed4afc7b80ca"
+          }
+        },
+        {
+          "client_id": "206696705800-r6246p538ste67c9s16kolkdirk4vvgj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPnAhIavTZU4I1F7pf7afUXRxQDSlBO-g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "206696705800-r6246p538ste67c9s16kolkdirk4vvgj.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "206696705800-paassmrtd04l6o5nmi5nj94p256ac1ug.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "dev.luwipark.trashtrackUser"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:206696705800:android:6fe7b623eafb632a3446bd",
+        "android_client_info": {
+          "package_name": "dev.luwipark.trashtrack_driver"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "206696705800-r6246p538ste67c9s16kolkdirk4vvgj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPnAhIavTZU4I1F7pf7afUXRxQDSlBO-g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "206696705800-r6246p538ste67c9s16kolkdirk4vvgj.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "206696705800-paassmrtd04l6o5nmi5nj94p256ac1ug.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "dev.luwipark.trashtrackUser"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:206696705800:android:827f9ca7b47a99503446bd",
+        "android_client_info": {
+          "package_name": "dev.luwipark.trashtrack_user"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "206696705800-88cgm92t48fj270kn2sr95jf5t7nsa4c.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "dev.luwipark.trashtrack_user",
+            "certificate_hash": "e15965852a5eb37ba9fba910d6efed4afc7b80ca"
+          }
+        },
+        {
+          "client_id": "206696705800-r6246p538ste67c9s16kolkdirk4vvgj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPnAhIavTZU4I1F7pf7afUXRxQDSlBO-g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "206696705800-r6246p538ste67c9s16kolkdirk4vvgj.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "206696705800-paassmrtd04l6o5nmi5nj94p256ac1ug.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "dev.luwipark.trashtrackUser"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

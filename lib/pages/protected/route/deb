@@ -1,0 +1,309 @@
+import 'dart:math';
+
+import 'package:dartz/dartz.dart' as dartz;
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:location/location.dart';
+import 'package:trashtrack_user/data/repositories/fleet_repository.dart';
+import 'package:trashtrack_user/helpers/notification_message_helper.dart';
+import 'package:trashtrack_user/models/fleet/fleet.dart';
+import 'package:trashtrack_user/models/schedule/schedule.dart';
+import 'package:trashtrack_user/widgets/custom_app_bar.dart';
+
+typedef GFSBT = StreamBuilder<dartz.Either<String, Fleet>>;
+typedef ESFST = dartz.Either<String, Fleet>;
+
+class RoutePage extends StatefulWidget {
+  const RoutePage({super.key, required this.schedule});
+  final Schedule schedule;
+
+  @override
+  State<RoutePage> createState() => _RoutePageState();
+}
+
+class _RoutePageState extends State<RoutePage> {
+  int _uniqueId = 0;
+  final List<LatLng> _allCoordinates = [];
+  final List<LatLng> _allCollections = [];
+  BitmapDescriptor _truckIcon = BitmapDescriptor.defaultMarker;
+  BitmapDescriptor _userIcon = BitmapDescriptor.defaultMarker;
+  BitmapDescriptor _collecIcon = BitmapDescriptor.defaultMarker;
+  BitmapDescriptor _goIcon = BitmapDescriptor.defaultMarker;
+  BitmapDescriptor _stopIcon = BitmapDescriptor.defaultMarker;
+  LocationData _currentLocation = LocationData.fromMap({
+    'latitude': 0.0,
+    'longitude': 0.0,
+  });
+  //for current latitude and longtitude
+  LatLng _currentLatLng = const LatLng(0, 0);
+
+  void _generateId() {
+    const min = 0;
+    const max = 1000000;
+    final random = Random.secure();
+    final id = min + random.nextInt(max - min);
+
+    setState(() {
+      _uniqueId = id;
+    });
+  }
+
+  Future<void> _getLocation() async {
+    final Location locationService = Location();
+
+    bool serviceEnabled = await locationService.serviceEnabled();
+    if (!serviceEnabled) {
+      serviceEnabled = await locationService.requestService();
+
+      if (!serviceEnabled) {
+        return;
+      }
+    }
+
+    PermissionStatus permissionGranted = await locationService.hasPermission();
+    if (permissionGranted == PermissionStatus.denied) {
+      permissionGranted = await locationService.requestPermission();
+
+      if (permissionGranted != PermissionStatus.granted) {
+        return;
+      }
+    }
+
+    _currentLocation = await locationService.getLocation();
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _setCoordinates() {
+    for (var l in widget.schedule.routePath ?? []) {
+      LatLng latLng = LatLng(l['lat'], l['lng']);
+
+      _allCoordinates.add(latLng);
+    }
+  }
+
+  void _setCollections() {
+    for (var l in widget.schedule.collectionsPath ?? []) {
+      LatLng latLng = LatLng(l['lat'] ?? 0, l['lng'] ?? 0);
+
+      _allCollections.add(latLng);
+    }
+  }
+
+  Future<void> _loadTruckIcon() async {
+    _truckIcon = await BitmapDescriptor.asset(
+      const ImageConfiguration(size: Size(40, 40)),
+      'lib/assets/images/truck.png',
+    );
+  }
+
+  Future<void> _loadUserIcon() async {
+    _userIcon = await BitmapDescriptor.asset(
+      const ImageConfiguration(size: Size(40, 40)),
+      'lib/assets/images/user.png',
+    );
+  }
+
+  Future<void> _loadCollectionIcon() async {
+    _collecIcon = await BitmapDescriptor.asset(
+      const ImageConfiguration(size: Size(40, 40)),
+      'lib/assets/images/trash-bin.png',
+    );
+  }
+
+  Future<void> _loadGoIcon() async {
+    _goIcon = await BitmapDescriptor.asset(
+      const ImageConfiguration(size: Size(40, 40)),
+      'lib/assets/images/trash-bin.png',
+    );
+  }
+
+  Future<void> _loadStopIcon() async {
+    _stopIcon = await BitmapDescriptor.asset(
+      const ImageConfiguration(size: Size(40, 40)),
+      'lib/assets/images/trash-bin.png',
+    );
+  }
+
+  // Future<void> _checkLocation(
+  //   FleetRepository fleetRepository,
+  //   LatLng driverLoc,
+  // ) async {
+  //   final userLoc = LatLng(
+  //     _currentLocation.latitude ?? 0,
+  //     _currentLocation.longitude ?? 0,
+  //   );
+
+  //   final result = await fleetRepository.getDistance(userLoc, driverLoc);
+
+  //   result.fold((String l) {
+  //     debugPrint(l);
+  //   }, (int r) {
+  //     if (r < 500) {
+  //       NotificationMessageHelper.showMessageNotification(
+  //         _uniqueId.toString(),
+  //         'Location Notification',
+  //         'The truck driver is near!',
+  //       );
+  //     }
+  //   });
+  // } possible broken
+
+  @override
+  void initState() {
+    super.initState();
+
+    _generateId();
+    _getLocation();
+    _setCoordinates();
+    _setCollections();
+    _loadTruckIcon();
+    _loadUserIcon();
+    _loadCollectionIcon();
+    _loadGoIcon();
+    _loadStopIcon();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fleetRepository = context.read<FleetRepository>();
+
+    return Scaffold(
+      appBar: const CustomAppBar(title: 'Route'),
+      body: Center(
+        child: buildGetFleetSB(fleetRepository),
+      ),
+    );
+  }
+
+  GFSBT buildGetFleetSB(FleetRepository fleetRepository) {
+    return GFSBT(
+      stream: fleetRepository.getFleet(widget.schedule.fleetId),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          final result = snapshot.data;
+
+          Widget widget = Container();
+
+          if (result != null) {
+            result.fold((String l) {
+              widget = const Text('Error getting the fleet');
+            }, (Fleet r) {
+              final location = r.location;
+              final driverLoc = LatLng(
+                location['lat'] ?? 0,
+                location['lng'] ?? 0,
+              );
+              _checkLocation(fleetRepository, driverLoc);
+
+              // if (userLat != 0 && userLng != 0) {
+              //   _checkLocation(fleetRepository, driverLoc);
+              // }
+
+              final Set<Marker> markers = {
+                Marker(
+                  markerId: const MarkerId('user_marker'),
+                  position: LatLng(
+                    _currentLocation.latitude ?? 0,
+                    _currentLocation.longitude ?? 0,
+                  ),
+                  icon: _userIcon,
+                  infoWindow: const InfoWindow(
+                    title: 'User Point',
+                    snippet: 'This is the user in the map',
+                  ),
+                ),
+                Marker(
+                  markerId: const MarkerId('driver_marker'),
+                  position: LatLng(location['lat'], location['lng']),
+                  icon: _truckIcon,
+                  infoWindow: const InfoWindow(
+                    title: 'Driver Point',
+                    snippet: 'This is the driver in the route',
+                  ),
+                ),
+                Marker(
+                  markerId: const MarkerId('start_marker'),
+                  position: _allCoordinates.first,
+                  icon: _goIcon,
+                  infoWindow: const InfoWindow(
+                    title: 'Start Point',
+                    snippet: 'This is the start of the route',
+                  ),
+                ),
+                Marker(
+                  markerId: const MarkerId('end_marker'),
+                  position: _allCoordinates.last,
+                  icon: _stopIcon,
+                  infoWindow: const InfoWindow(
+                    title: 'End Point',
+                    snippet: 'This is the end of the route',
+                  ),
+                ),
+              };
+
+              for (int i = 0; i < _allCollections.length; i++) {
+                final collectionLoc = _allCollections[i];
+                final collectionLatLng = LatLng(
+                  collectionLoc.latitude,
+                  collectionLoc.longitude,
+                );
+                markers.add(
+                  Marker(
+                    markerId: MarkerId('collection_marker_$i'),
+                    position: collectionLatLng,
+                    icon: _collecIcon,
+                    infoWindow: InfoWindow(
+                      title: 'Collection Point',
+                      snippet: 'Collection point ${i + 1}',
+                    ),
+                  ),
+                );
+              }
+
+              widget = GoogleMap(
+                initialCameraPosition: CameraPosition(
+                  target: _allCoordinates.first,
+                  zoom: 15.0,
+                ),
+                polylines: {
+                  Polyline(
+                    polylineId: const PolylineId('route_path'),
+                    points: _allCoordinates,
+                    color: Colors.blue,
+                    width: 5,
+                  ),
+                },
+                markers: markers,
+              );
+            });
+          }
+
+          return widget;
+        } else {
+          return const CircularProgressIndicator();
+        }
+      },
+    );
+  }
+
+  //Notification test delete if not neccesary
+  Future<void> _checkLocation(
+      FleetRepository fleetRepository, LatLng driverLoc) async {
+    final result = await fleetRepository.getDistance(_currentLatLng, driverLoc);
+
+    result.fold((String l) {
+      debugPrint(l);
+    }, (int r) {
+      if (r < 500) {
+        NotificationMessageHelper.showMessageNotification(
+          _uniqueId.toString(),
+          'Location Notification',
+          'The truck driver is near!',
+        );
+      }
+    });
+  }
+}
